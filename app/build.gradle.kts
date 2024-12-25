@@ -10,10 +10,8 @@ repositories {
 
 dependencies {
     implementation("org.apache.hadoop:hadoop-common:3.4.1")
-    implementation("org.apache.hadoop:hadoop-hdfs:3.4.1")
     implementation("org.apache.hadoop:hadoop-mapreduce-client-core:3.4.1")
     implementation("org.apache.hadoop:hadoop-client:3.4.1")
-    compileOnly("org.apache.hadoop:hadoop-mapreduce-client-shuffle:3.4.1")
 
 
     // Use JUnit Jupiter for testing.
