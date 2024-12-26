@@ -1,8 +1,8 @@
 package lab4.buckzor110;
 
-import lab4.buckzor110.calc.SaleInfo;
-import lab4.buckzor110.calc.SaleMapper;
-import lab4.buckzor110.calc.SaleReducer;
+import lab4.buckzor110.calc.SalesData;
+import lab4.buckzor110.calc.SalesMapper;
+import lab4.buckzor110.calc.SalesReducer;
 import lab4.buckzor110.sort.ShuffleData;
 import lab4.buckzor110.sort.ShuffleMapper;
 import lab4.buckzor110.sort.ShuffleReducer;
@@ -19,38 +19,44 @@ public class App {
 
     public static void main(String[] args) throws Exception {
 
-        String inputDir = "/Users/e.y.ershov/lab4-Buckzor110/app/input_dir/7.csv";
-        String outputDir = "/Users/e.y.ershov/lab4-Buckzor110/app/result";
+        String inputDir = "./src/main/resources/input_dir";
+        String outputDir = "./src/main/resources/output_dir";
 
-        int reducersCount = 1;
-        int datablockSizeMb = 1 * ((int) Math.pow(2, 10));
-        String intermediateResultDir = outputDir + "-intermediate";
+        int reducersCount = 40;
+        int datablockSizeMb = 1_000_000;
+        String intermediateResultDir = outputDir + "-processing";
 
         long startTime = System.currentTimeMillis();
         Configuration conf = new Configuration();
+
         FileSystem fs = FileSystem.get(conf);
         Path intermediateOutput = new Path(intermediateResultDir);
         Path finalOutput = new Path(outputDir);
 
         if (fs.exists(intermediateOutput)) {
-            System.out.printf("Удаление существующей промежуточной директории: %s%n", intermediateResultDir);
             fs.delete(intermediateOutput, true);
         }
 
         if (fs.exists(finalOutput)) {
-            System.out.printf("Удаление существующей итоговой директории: %s%n", outputDir);
             fs.delete(finalOutput, true);
         }
 
+
         conf.set("mapreduce.input.fileinputformat.split.maxsize", Integer.toString(datablockSizeMb));
+        conf.set("mapreduce.map.output.compress", "true");
+        conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
+        conf.set("mapreduce.map.speculative", "true");
+        conf.set("mapreduce.reduce.speculative", "true");
+        conf.set("mapreduce.task.io.sort.mb", "256");
+        conf.set("mapreduce.reduce.shuffle.parallelcopies", "10");
 
         Job salesAnalysisJob = Job.getInstance(conf, "map sales");
         salesAnalysisJob.setNumReduceTasks(reducersCount);
         salesAnalysisJob.setJarByClass(App.class);
-        salesAnalysisJob.setMapperClass(SaleMapper.class);
-        salesAnalysisJob.setReducerClass(SaleReducer.class);
+        salesAnalysisJob.setMapperClass(SalesMapper.class);
+        salesAnalysisJob.setReducerClass(SalesReducer.class);
         salesAnalysisJob.setMapOutputKeyClass(Text.class);
-        salesAnalysisJob.setMapOutputValueClass(SaleInfo.class);
+        salesAnalysisJob.setMapOutputValueClass(SalesData.class);
         salesAnalysisJob.setOutputKeyClass(Text.class);
         salesAnalysisJob.setOutputValueClass(Text.class);
 
@@ -58,20 +64,14 @@ public class App {
         intermediateOutput = new Path(intermediateResultDir);
         FileOutputFormat.setOutputPath(salesAnalysisJob, intermediateOutput);
 
-        boolean success = salesAnalysisJob.waitForCompletion(false);
-
-        if (!success) {
-            System.exit(1);
-        }
+        salesAnalysisJob.waitForCompletion(true);
 
         Job sortByValueJob = Job.getInstance(conf, "sorting by prize");
         sortByValueJob.setJarByClass(App.class);
         sortByValueJob.setMapperClass(ShuffleMapper.class);
         sortByValueJob.setReducerClass(ShuffleReducer.class);
-
         sortByValueJob.setMapOutputKeyClass(DoubleWritable.class);
         sortByValueJob.setMapOutputValueClass(ShuffleData.class);
-
         sortByValueJob.setOutputKeyClass(ShuffleData.class);
         sortByValueJob.setOutputValueClass(Text.class);
 
@@ -79,8 +79,8 @@ public class App {
         FileOutputFormat.setOutputPath(sortByValueJob, new Path(outputDir));
 
         long endTime = System.currentTimeMillis();
-        System.out.printf("Jobs completed in %n milliseconds%n", endTime - startTime);
+        System.out.printf("Jobs completed in %s milliseconds", endTime - startTime);
 
-        System.exit(sortByValueJob.waitForCompletion(false) ? 0 : 1);
+        System.exit(sortByValueJob.waitForCompletion(true) ? 0 : 1);
     }
 }
