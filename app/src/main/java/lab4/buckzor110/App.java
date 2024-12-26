@@ -47,8 +47,6 @@ public class App {
         conf.set("mapreduce.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec");
         conf.set("mapreduce.map.speculative", "true");
         conf.set("mapreduce.reduce.speculative", "true");
-        conf.set("mapreduce.task.io.sort.mb", "256");
-        conf.set("mapreduce.reduce.shuffle.parallelcopies", "10");
 
         Job salesAnalysisJob = Job.getInstance(conf, "map sales");
         salesAnalysisJob.setNumReduceTasks(reducersCount);
