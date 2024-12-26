@@ -17,15 +17,13 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class App {
 
+    private static final String inputDir = "./src/main/resources/input_dir";
+    private static final String outputDir = "./src/main/resources/output_dir";
+    private static final String intermediateResultDir = outputDir + "-processing";
+    private static final int reducersCount = 40;
+    private static final int datablockSizeMb = 1_000_000;
+
     public static void main(String[] args) throws Exception {
-
-        String inputDir = "./src/main/resources/input_dir";
-        String outputDir = "./src/main/resources/output_dir";
-
-        int reducersCount = 40;
-        int datablockSizeMb = 1_000_000;
-        String intermediateResultDir = outputDir + "-processing";
-
         long startTime = System.currentTimeMillis();
         Configuration conf = new Configuration();
 
@@ -40,7 +38,6 @@ public class App {
         if (fs.exists(finalOutput)) {
             fs.delete(finalOutput, true);
         }
-
 
         conf.set("mapreduce.input.fileinputformat.split.maxsize", Integer.toString(datablockSizeMb));
         conf.set("mapreduce.map.output.compress", "true");
